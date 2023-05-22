@@ -742,26 +742,26 @@ impl<'isolated, T: MaybeSend + Encodable> ModuleDatabaseTransaction<'isolated, T
     }
 
     #[instrument(level = "debug", skip_all, fields(key = ?key_prefix))]
-    pub async fn find_by_prefix_sorted_descending<KP>(
-        &mut self,
-        key_prefix: &KP,
-    ) -> impl Stream<
-        Item = (
-            KP::Record,
-            <<KP as DatabaseLookup>::Record as DatabaseRecord>::Value,
-        ),
-    > + '_
+    pub async fn find_by_prefix_sorted_descending<'a, KP>(
+    &'a mut self,
+    key_prefix: &'a KP,
+    ) -> impl Stream<Item = (KP::Record, <<KP as DatabaseLookup>::Record as DatabaseRecord>::Value)> + 'a
     where
         KP: DatabaseLookup,
         KP::Record: DatabaseKey,
-    {
-        find_by_prefix_sorted_descending(
-            self.isolated_tx.as_mut(),
-            self.decoders.clone(),
-            key_prefix,
-        )
-        .await
+{
+    find_by_prefix_sorted_descending(
+        self.isolated_tx.as_mut(),
+        self.decoders.clone(),
+        key_prefix,
+    )
+    .await
     }
+
+
+
+
+
 
     #[instrument(level = "debug", skip_all, fields(?key))]
     fn add_notification_key<K>(&mut self, key: &K)
@@ -1153,21 +1153,17 @@ impl<'parent> DatabaseTransaction<'parent> {
     }
 
     #[instrument(level = "debug", skip_all, fields(key = ?key_prefix))]
-    pub async fn find_by_prefix_sorted_descending<KP>(
-        &mut self,
-        key_prefix: &KP,
-    ) -> impl Stream<
-        Item = (
-            KP::Record,
-            <<KP as DatabaseLookup>::Record as DatabaseRecord>::Value,
-        ),
-    > + '_
+    pub async fn find_by_prefix_sorted_descending<'a, KP>(
+        &'a mut self,
+        key_prefix: &'a KP,
+    ) -> impl Stream<Item = (KP::Record, <<KP as DatabaseLookup>::Record as DatabaseRecord>::Value)> + 'a
     where
-        KP: DatabaseLookup,
+        KP: DatabaseLookup + 'a,
         KP::Record: DatabaseKey,
     {
-        find_by_prefix_sorted_descending(self.tx.as_mut(), self.decoders.clone(), key_prefix).await
+    find_by_prefix_sorted_descending(self.tx.as_mut(), self.decoders.clone(), key_prefix).await
     }
+
 
     #[instrument(level = "debug", skip_all, fields(?key, ?value), ret)]
     pub async fn insert_entry<K>(&mut self, key: &K, value: &K::Value) -> Option<K::Value>
